@@ -1,10 +1,1 @@
-streamlit
-requests
-python-dotenv
-google-generativeai 
-chromadb 
-sentence-transformers 
-pypdf2 
-langchain-text-splitters 
-python-dotenv 
-rich
+streamlit requests python-dotenv google-generativeai  chromadb  sentence-transformers  pypdf2 langchain-text-splitters python-dotenv  rich
