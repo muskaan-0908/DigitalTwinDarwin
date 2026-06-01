@@ -5,7 +5,7 @@ import google.generativeai as genai
 
 
 from rag import retrieve
-from memory import load_long_term_memory, format_memory_for_prompt, update_long_term_memory, save_long_term_memory
+from memory import load_long_term_memory, format_memory_for_prompt, update_long_term_memory, save_long_term_memory, log_conversation_turn, start_dashboard_session, get_dashboard_data
 from persona import get_persona_prompt
 
 st.set_page_config(
@@ -833,15 +833,18 @@ with st.sidebar:
     st.markdown("---")
 
     col1, col2 = st.columns(2)
-    with col1:
-        if st.button("Clear Chat", use_container_width=True):
-            st.session_state.messages = []
-            st.rerun()
-    with col2:
-        msg_count = len(st.session_state.get("messages", []))
-        st.metric("Messages", msg_count)
-
-
+with col1:
+    if st.button("Clear Chat", use_container_width=True):
+        st.session_state.messages = []
+        st.rerun()
+with col2:
+    msg_count = len(st.session_state.get("messages", []))
+    st.metric("Messages", msg_count)
+ 
+if st.button("🧠 Memory Dashboard", use_container_width=True):
+    st.session_state.show_dashboard = True
+    st.rerun()
+ 
 # -----------------------------------
 # MAIN PAGE — Premium Header
 # -----------------------------------
@@ -889,11 +892,13 @@ if "messages" not in st.session_state:
     st.session_state.messages = []
 
 # Increment session count on first load
+
 if "session_count_incremented" not in st.session_state:
     memory_data = load_long_term_memory()
     memory_data["session_count"] = memory_data.get("session_count", 0) + 1
     save_long_term_memory(memory_data)
     st.session_state.session_count_incremented = True
+    start_dashboard_session(timeline_year=st.session_state.get("selected_year", 1870))
 
 # Show a welcome message if chat is empty
 scene_text = ""
@@ -1060,7 +1065,158 @@ if prompt:
                 st.session_state.messages.append(
             {"role": "assistant", "content": answer}
         )
-
+                log_conversation_turn("user",   prompt,        timeline_year=st.session_state.get("selected_year", 1870))
+                log_conversation_turn("darwin", full_response, timeline_year=st.session_state.get("selected_year", 1870))
             except Exception as e:
                 st.error(str(e))
     
+if st.session_state.get("show_dashboard"):
+ 
+    # CSS for dashboard cards (scoped, won't affect chat UI)
+    st.markdown("""
+    <style>
+    .dash-card {
+        background: linear-gradient(135deg, #fdf6e3 0%, #faf0d0 100%);
+        border: 1px solid #dfc98a; border-radius: 12px; padding: 18px;
+        margin-bottom: 14px; box-shadow: 0 2px 10px rgba(155,123,46,0.25);
+    }
+    .dash-metric { font-size: 2rem; font-weight: 700; font-family: 'Playfair Display', serif; color: #1a0f00; }
+    .dash-label  { font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.8px; color: #5c4a2a; margin-top: 2px; }
+    .fact-item {
+        background: rgba(155,123,46,0.07); border-left: 3px solid #9b7b2e;
+        border-radius: 0 8px 8px 0; padding: 8px 14px; margin-bottom: 8px;
+        font-family: 'Crimson Text', serif; font-size: 1rem; color: #3d2b1f;
+    }
+    .bar-wrap  { display:flex; align-items:center; gap:8px; margin-bottom:7px; }
+    .bar-label { font-size:12px; color:#3d2b1f; min-width:130px; font-family:'Crimson Text',serif; }
+    .bar-track { flex:1; height:8px; background:rgba(155,123,46,0.15); border-radius:4px; overflow:hidden; }
+    .bar-fill  { height:100%; border-radius:4px; }
+    .bar-count { font-size:11px; color:#5c4a2a; min-width:22px; text-align:right; }
+    .turn-row  { display:flex; gap:10px; align-items:flex-start; padding:8px 0;
+                 border-bottom:1px solid rgba(155,123,46,0.15); font-family:'Crimson Text',serif; font-size:0.95rem; }
+    .turn-dot-user   { width:8px;height:8px;border-radius:50%;background:#2d5a30;margin-top:6px;flex-shrink:0; }
+    .turn-dot-darwin { width:8px;height:8px;border-radius:50%;background:#9b7b2e;margin-top:6px;flex-shrink:0; }
+    .turn-year  { font-size:11px; color:#5c4a2a; min-width:34px; padding-top:3px; flex-shrink:0; }
+    .turn-topic { font-size:11px; color:#9b7b2e; margin-top:2px; }
+    </style>
+    """, unsafe_allow_html=True)
+ 
+    # Header
+    st.markdown("""
+    <div style="background:linear-gradient(135deg,#1a0f00,#3d2b1f,#5c4a2a);border-radius:16px;
+                padding:24px 32px;margin-bottom:20px;border:1px solid #9b7b2e;">
+      <h1 style="color:#F8E7A1!important;font-family:'Playfair Display',serif!important;
+                 font-size:2.2rem!important;margin:0!important;">🧠 Memory Dashboard</h1>
+      <p style="color:#F4D77A!important;font-style:italic;margin-top:6px;">
+        A record of all that Darwin has learned about you across your conversations
+      </p>
+    </div>
+    """, unsafe_allow_html=True)
+ 
+    if st.button("← Back to Chat"):
+        st.session_state.show_dashboard = False
+        st.rerun()
+ 
+    dash = get_dashboard_data()
+ 
+    # ── Metric row
+    c1, c2, c3, c4 = st.columns(4)
+    c1.markdown(f'<div class="dash-card"><div class="dash-metric">{dash["session_count"]}</div><div class="dash-label">Total Sessions</div></div>', unsafe_allow_html=True)
+    c2.markdown(f'<div class="dash-card"><div class="dash-metric">{len(dash["facts"])}</div><div class="dash-label">Facts Remembered</div></div>', unsafe_allow_html=True)
+    c3.markdown(f'<div class="dash-card"><div class="dash-metric">{dash["unique_topics"]}</div><div class="dash-label">Unique Topics</div></div>', unsafe_allow_html=True)
+    c4.markdown(f'<div class="dash-card"><div class="dash-metric">{dash["total_turns"]}</div><div class="dash-label">Total Turns</div></div>', unsafe_allow_html=True)
+ 
+    st.markdown("---")
+    left, right = st.columns(2, gap="medium")
+ 
+    # ── Topic frequency bars
+    with left:
+        st.markdown("#### 📊 Topic Frequency")
+        topic_counts = dash["topic_counts"]
+        if topic_counts:
+            sorted_topics = sorted(topic_counts.items(), key=lambda x: x[1], reverse=True)[:10]
+            max_count = sorted_topics[0][1]
+            colors = ["#9b7b2e","#2d5a30","#BA7517","#D4537E","#534AB7","#D85A30","#639922","#378ADD","#1D9E75","#c9a84c"]
+            bars_html = ""
+            for i, (topic, count) in enumerate(sorted_topics):
+                pct = round(count / max_count * 100)
+                bars_html += f"""<div class="bar-wrap">
+                  <div class="bar-label">{topic}</div>
+                  <div class="bar-track"><div class="bar-fill" style="width:{pct}%;background:{colors[i%len(colors)]};"></div></div>
+                  <div class="bar-count">{count}</div></div>"""
+            st.markdown(f'<div class="dash-card">{bars_html}</div>', unsafe_allow_html=True)
+        else:
+            st.markdown('<div class="dash-card" style="color:#5c4a2a;font-style:italic;">No topics yet — start chatting!</div>', unsafe_allow_html=True)
+ 
+    # ── Session activity chart
+    with right:
+        st.markdown("#### 📅 Session Activity")
+        activity = dash["session_activity"]
+        if activity:
+            try:
+                import pandas as pd
+                df = pd.DataFrame(activity)
+                df = df[["date","user_turns","darwin_turns"]].rename(
+                    columns={"date":"Date","user_turns":"You","darwin_turns":"Darwin"})
+                st.bar_chart(df.set_index("Date"), color=["#2d5a30","#9b7b2e"])
+            except Exception:
+                for slot in activity[-5:]:
+                    st.markdown(f'<div class="dash-card" style="padding:10px 16px;">'
+                                f'<strong>{slot.get("date","")}</strong> · '
+                                f'You: {slot.get("user_turns",0)} · Darwin: {slot.get("darwin_turns",0)}'
+                                f'</div>', unsafe_allow_html=True)
+        else:
+            st.markdown('<div class="dash-card" style="color:#5c4a2a;font-style:italic;">No session data yet.</div>', unsafe_allow_html=True)
+ 
+    st.markdown("---")
+ 
+    # ── What Darwin remembers about you
+    st.markdown("#### 🗂️ What Darwin Remembers About You")
+    facts = dash["facts"]
+    if facts:
+        for fact in facts:
+            st.markdown(f'<div class="fact-item">📌 {fact}</div>', unsafe_allow_html=True)
+        if st.button("🗑️ Clear All Memories"):
+            data = load_long_term_memory()
+            data["facts"] = []
+            save_long_term_memory(data)
+            st.success("Memory cleared.")
+            st.rerun()
+    else:
+        st.markdown('<div class="dash-card" style="color:#5c4a2a;font-style:italic;">Darwin has not yet formed any lasting impressions of you. Keep conversing!</div>', unsafe_allow_html=True)
+ 
+    st.markdown("---")
+ 
+    # ── Conversation timeline
+    st.markdown("#### 🕰️ Conversation Timeline")
+    conv_log = dash["conversation_log"]
+    if conv_log:
+        search = st.text_input("🔍 Filter", placeholder="Search by topic or text…")
+        filtered = [t for t in reversed(conv_log)
+                    if not search
+                    or search.lower() in t.get("text","").lower()
+                    or search.lower() in t.get("topic","").lower()]
+ 
+        timeline_html = '<div class="dash-card" style="max-height:380px;overflow-y:auto;">'
+        for turn in filtered[:60]:
+            dot = "turn-dot-user" if turn["role"] == "user" else "turn-dot-darwin"
+            label = "You" if turn["role"] == "user" else "Darwin"
+            snippet = turn.get("text","")[:140] + ("…" if len(turn.get("text","")) > 140 else "")
+            timeline_html += f"""<div class="turn-row">
+              <div class="{dot}"></div>
+              <div class="turn-year">{turn.get("year","")}</div>
+              <div><div><strong>{label}:</strong> {snippet}</div>
+              <div class="turn-topic">{turn.get("topic","")}</div></div></div>"""
+        timeline_html += "</div>"
+        st.markdown(timeline_html, unsafe_allow_html=True)
+ 
+        import json as _json
+        st.download_button(
+            label="⬇️ Export conversation log (JSON)",
+            data=_json.dumps(conv_log, indent=2),
+            file_name="darwin_conversation_log.json",
+            mime="application/json",
+        )
+    else:
+        st.markdown('<div class="dash-card" style="color:#5c4a2a;font-style:italic;">No conversation turns logged yet.</div>', unsafe_allow_html=True)
+ 

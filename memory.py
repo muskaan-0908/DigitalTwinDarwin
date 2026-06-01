@@ -134,3 +134,97 @@ Example response:
     except Exception as e:
         print(f"Failed to update long-term memory: {e}")
         return False
+    
+    import re
+from collections import Counter
+from datetime import datetime
+ 
+_TOPIC_MAP = {
+    "Natural Selection": ["select", "survival", "adapt", "fit", "breed", "pigeon"],
+    "Evolution":         ["evolut", "descent", "transmut", "species", "origin"],
+    "Geology":           ["geolog", "strata", "lyell", "rock", "fossil", "sediment"],
+    "Beagle Voyage":     ["beagle", "voyage", "travel", "galapag", "island", "coral"],
+    "Population":        ["malthus", "populat", "struggle", "competition"],
+    "Variation":         ["heredit", "inherit", "variation", "trait", "domest"],
+    "Botany":            ["plant", "flower", "orchid", "insectivorous", "worm"],
+    "Wallace":           ["wallace", "priority", "linnean", "joint"],
+    "Religion":          ["god", "creator", "faith", "church", "belief", "design"],
+}
+_STOP = {"the","a","an","and","or","of","to","in","is","it","that","was","he","she"}
+ 
+ 
+def _infer_topic(text: str) -> str:
+    t = text.lower()
+    for topic, kws in _TOPIC_MAP.items():
+        if any(k in t for k in kws):
+            return topic
+    words = re.findall(r"[a-z]{5,}", t)
+    freq = Counter(w for w in words if w not in _STOP)
+    return freq.most_common(1)[0][0].title() if freq else "General"
+ 
+ 
+def log_conversation_turn(role: str, text: str, timeline_year: int = 1870,
+                          filename: str = "long_term_memory.json") -> None:
+    """
+    Log one conversation turn for the memory dashboard.
+    Call after every user message and every Darwin response in app.py.
+    role: "user" or "darwin"
+    """
+    data = load_long_term_memory(filename)
+    topic = _infer_topic(text)
+    entry = {
+        "role": role,
+        "text": text[:400],
+        "topic": topic,
+        "year": timeline_year,
+        "timestamp": datetime.now().isoformat(timespec="seconds"),
+    }
+    data.setdefault("conversation_log", []).append(entry)
+    # cap at 500 turns
+    if len(data["conversation_log"]) > 500:
+        data["conversation_log"] = data["conversation_log"][-500:]
+ 
+    data.setdefault("topic_counts", {})
+    data["topic_counts"][topic] = data["topic_counts"].get(topic, 0) + 1
+ 
+    data.setdefault("session_activity", [])
+    if data["session_activity"]:
+        slot = data["session_activity"][-1]
+        if role == "user":
+            slot["user_turns"] = slot.get("user_turns", 0) + 1
+        else:
+            slot["darwin_turns"] = slot.get("darwin_turns", 0) + 1
+ 
+    save_long_term_memory(data, filename)
+ 
+ 
+def start_dashboard_session(timeline_year: int = 1870,
+                            filename: str = "long_term_memory.json") -> None:
+    """
+    Call once when a new Streamlit session begins (guard with session_state).
+    Creates a new slot in session_activity.
+    """
+    data = load_long_term_memory(filename)
+    data.setdefault("session_activity", [])
+    data["session_activity"].append({
+        "date": datetime.now().strftime("%Y-%m-%d"),
+        "user_turns": 0,
+        "darwin_turns": 0,
+        "year": timeline_year,
+    })
+    save_long_term_memory(data, filename)
+ 
+ 
+def get_dashboard_data(filename: str = "long_term_memory.json") -> dict:
+    """Returns all data needed to render the Memory Dashboard page."""
+    data = load_long_term_memory(filename)
+    return {
+        "session_count":   data.get("session_count", 0),
+        "facts":           data.get("facts", []),
+        "unique_topics":   len(data.get("topic_counts", {})),
+        "total_turns":     len(data.get("conversation_log", [])),
+        "topic_counts":    data.get("topic_counts", {}),
+        "conversation_log":   data.get("conversation_log", [])[-60:],
+        "session_activity":   data.get("session_activity", [])[-15:],
+    }
+ 
