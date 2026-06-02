@@ -31,10 +31,16 @@ def get_uncertainty_score(text: str) -> dict:
         score = min(100, int(((high * 3 + med * 1.5) / (total * 3)) * 100))
 
     if score >= 65:
-        label, colour, icon = "Speculative", "#c0392b"
+        label = "Speculative"
+        colour = "#c0392b"
+        icon = "🤔"
     elif score >= 35:
-        label, colour, icon = "Tentative",   "#e67e22"
+        label = "Tentative"
+        colour = "#e67e22"
+        icon = "🧐"
     else:
-        label, colour, icon = "Confident",   "#2d5a30"
+        label = "Confident"
+        colour = "#2d5a30"
+        icon = "✅"
 
-    return {"score": score, "label": label, "colour": colour}
+    return {"score": score, "label": label, "colour": colour, "icon": icon}

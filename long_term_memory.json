@@ -1,6 +1,43 @@
 {
-  "facts": [],
-  "session_count": 206,
+  "facts": [
+    {
+      "text": "The user is interested in natural selection.",
+      "category": "interests",
+      "added_session": 219,
+      "turn": 6
+    },
+    {
+      "text": "The user is curious about how altruism (e.g., sterile worker bees) can be explained by the theory of natural selection.",
+      "category": "questions_asked",
+      "added_session": 219,
+      "turn": 6
+    },
+    {
+      "text": "The user is interested in the evolution of moral virtues and cooperation in human societies.",
+      "category": "interests",
+      "added_session": 219,
+      "turn": 6
+    },
+    {
+      "text": "The user seeks to understand if the logic applied to the evolution of altruism in social insects can be extended to human morality.",
+      "category": "questions_asked",
+      "added_session": 219,
+      "turn": 6
+    },
+    {
+      "text": "The user is aware of the public debate regarding Darwin's theories and their perceived conflict with the notion of a Divine Creator.",
+      "category": "background",
+      "added_session": 219,
+      "turn": 6
+    },
+    {
+      "text": "The user is curious about Darwin's personal views on atheism versus the existence of a higher power within the laws of nature.",
+      "category": "questions_asked",
+      "added_session": 219,
+      "turn": 6
+    }
+  ],
+  "session_count": 220,
   "conversation_log": [],
   "topic_counts": {},
   "session_activity": [
@@ -59,5 +96,5 @@
       "year": 1870
     }
   ],
-  "total_turns": 0
+  "total_turns": 1
 }

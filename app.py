@@ -733,12 +733,19 @@ with st.sidebar:
         st.session_state.show_memory = not st.session_state.show_memory
         st.rerun()
 
+if "letter_mode_state" not in st.session_state:
+    st.session_state.letter_mode_state = True
+
 if "letter_mode" not in st.session_state:
-    st.session_state.letter_mode = True
+    st.session_state.letter_mode = st.session_state.letter_mode_state
+
+def _sync_letter_mode():
+    st.session_state.letter_mode_state = st.session_state.letter_mode
 
 letter_mode = st.toggle(
     " Letter Mode",
-    key="letter_mode"
+    key="letter_mode",
+    on_change=_sync_letter_mode
 )
 
 
@@ -841,18 +848,8 @@ if prompt:
 
     with st.chat_message("assistant", avatar="🧑🏼‍🔬"):
         response_text = st.write_stream(ask_darwin(prompt, current_year))
-        
-        from uncertainty import get_uncertainty_score
-        unc = get_uncertainty_score(response_text)
-        unc_html = (
-            f'<div style="margin-top: 10px; padding: 6px 12px; background: rgba(0,0,0,0.03); '
-            f'border-left: 3px solid {unc["colour"]}; border-radius: 4px; '
-            f'font-size: 0.9rem; color: {unc["colour"]}; font-family: \'Crimson Text\', serif;">'
-            f'{unc["icon"]} <strong>Confidence:</strong> {unc["label"]} (Score: {unc["score"]}/100)</div>'
-        )
-        st.markdown(unc_html, unsafe_allow_html=True)
 
-    st.session_state.messages.append({"role": "assistant", "content": response_text + "\n\n" + unc_html})
+    st.session_state.messages.append({"role": "assistant", "content": response_text})
 
 
     maybe_summarise(st.session_state.messages, year=st.session_state.selected_year)
@@ -868,3 +865,4 @@ if prompt:
 
 
     st.rerun()
+# trigger reload
