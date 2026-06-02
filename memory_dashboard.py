@@ -215,7 +215,7 @@ def render_memory_dashboard(memory_data: dict) -> None:
     # ── Section header ────────────────────────────────────────────────────────
     st.markdown("""
     <div class="mem-header">
-        🧠 Darwin Knows About You
+         Darwin Knows About You
     </div>
     """, unsafe_allow_html=True)
 

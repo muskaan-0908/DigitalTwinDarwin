@@ -11,10 +11,10 @@ from memory import (
     save_long_term_memory,
 )
 from conversation_summary import (
-            maybe_summarise, get_prompt_context,
-            render_summary_sidebar, SUMMARY_CSS
-        )
-from memory_dashboard import render_memory_dashboard, DASHBOARD_CSS, clear_memory
+    maybe_summarise, get_prompt_context,
+    render_summary_sidebar, SUMMARY_CSS
+)
+from memory_dashboard import render_memory_dashboard as _render_mem_dash, DASHBOARD_CSS, clear_memory
 from persona import get_persona_prompt
 
 st.set_page_config(
@@ -28,11 +28,11 @@ load_dotenv()
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 model = genai.GenerativeModel("gemini-2.5-flash")
 
-_SIDEBAR_BTN_FIX = """
+# ── Sidebar collapse button styling ──────────────────────────────────────────
+st.markdown("""
 <style>
 [data-testid="stSidebar"] button[data-testid="stBaseButton-header"],
 [data-testid="stSidebar"] button[kind="header"],
-[data-testid="stSidebar"] .stButton button,
 [data-testid="stSidebar"] > div > div > div > button,
 button[data-testid="stSidebarNavCollapseButton"],
 [data-testid="stSidebarContent"] button {
@@ -50,7 +50,6 @@ button[data-testid="stSidebarNavCollapseButton"],
   fill: #F8E7A1 !important;
   color: #F8E7A1 !important;
 }
-
 section[data-testid="stSidebar"] + div button,
 div[data-testid="stSidebarCollapsedControl"] button,
 div[data-testid="collapsedControl"] button,
@@ -70,9 +69,9 @@ div[data-testid="collapsedControl"] button svg {
   color: #F8E7A1 !important;
 }
 </style>
-"""
-st.markdown(_SIDEBAR_BTN_FIX, unsafe_allow_html=True)
+""", unsafe_allow_html=True)
 
+# ── Main CSS ──────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap');
@@ -126,12 +125,10 @@ section[data-testid="stSidebar"] { min-width: 300px !important; max-width: 300px
   font-family: 'Crimson Text', Georgia, serif !important;
 }
 
-.era-badge, .topic-pill { color: var(--ink-mid) !important; }
 [data-testid="stSidebar"] div {
   color: var(--ink-mid) !important;
   font-family: 'Crimson Text', Georgia, serif !important;
 }
-
 
 [data-testid="collapsedControl"],
 [data-testid="collapsedControl"] > button,
@@ -170,8 +167,6 @@ button[data-testid="collapsedControl"],
 }
 h1 { font-family: 'Playfair Display', Georgia, serif !important; font-weight: 700 !important; color: var(--ink-dark) !important; }
 h2, h3 { font-family: 'Playfair Display', Georgia, serif !important; color: var(--ink-mid) !important; }
-.darwin-header h1 { color: #F8E7A1 !important; }
-.darwin-header p  { color: #F4D77A !important; }
 
 .darwin-header {
   background: linear-gradient(135deg, #1a0f00 0%, #3d2b1f 40%, #5c4a2a 100%);
@@ -265,6 +260,7 @@ h2, h3 { font-family: 'Playfair Display', Georgia, serif !important; color: var(
 }
 [data-testid="stChatInput"] textarea::placeholder { color: var(--ink-warm) !important; font-style: italic !important; opacity: 0.7; }
 
+/* ── Default buttons (main area) ── */
 .stButton > button {
   font-family: 'Crimson Text', Georgia, serif !important; font-size: 0.95rem !important;
   color: var(--ink-mid) !important;
@@ -279,6 +275,43 @@ h2, h3 { font-family: 'Playfair Display', Georgia, serif !important; color: var(
   box-shadow: 0 4px 16px var(--shadow-gold) !important; transform: translateY(-1px) !important;
 }
 
+/* ── Sidebar pill buttons (override to look like pills) ── */
+[data-testid="stSidebar"] .stButton > button {
+  background: linear-gradient(135deg, var(--parchment-dark) 0%, var(--parchment-mid) 100%) !important;
+  color: var(--ink-mid) !important;
+  border: 1px solid rgba(155,123,46,0.45) !important;
+  border-radius: 20px !important;
+  font-family: 'Crimson Text', serif !important;
+  font-size: 0.88rem !important;
+  padding: 5px 14px !important;
+  text-align: left !important;
+  box-shadow: none !important;
+  transition: all 0.2s ease !important;
+  margin-bottom: 2px !important;
+}
+[data-testid="stSidebar"] .stButton > button:hover {
+  background: linear-gradient(135deg, var(--gold) 0%, var(--gold-light) 100%) !important;
+  color: var(--parchment-light) !important;
+  transform: translateX(3px) !important;
+  box-shadow: 2px 2px 8px var(--shadow-gold) !important;
+}
+/* ── DARWIN HEADER FONT COLOUR FIXES ─────────────────────── */
+.darwin-header h1,
+.darwin-header h1 a,
+.darwin-header [data-testid="stHeadingWithActionElements"],
+.darwin-header [data-testid="stHeadingWithActionElements"] span {
+  color: #F8E7A1 !important;
+}
+
+.darwin-header p,
+.darwin-header p span,
+.darwin-header div:not(.badge) {
+  color: #F4D77A !important;
+}
+
+.darwin-header .badge {
+  color: #e8c96b !important;
+}
 [data-testid="stMetricValue"] {
   color: var(--ink-dark) !important; font-family: 'Playfair Display', serif !important;
   font-size: 1.6rem !important; font-weight: 700 !important;
@@ -314,15 +347,6 @@ hr {
   font-size: 0.82rem; font-family: 'Crimson Text', serif; letter-spacing: 0.5px;
   border: 1px solid var(--gold); box-shadow: 0 2px 8px var(--shadow-warm);
 }
-
-.topic-pill {
-  display: inline-block;
-  background: linear-gradient(135deg, var(--parchment-dark) 0%, var(--parchment-mid) 100%);
-  color: var(--ink-mid) !important; padding: 4px 12px; border-radius: 14px;
-  font-size: 0.83rem; font-family: 'Crimson Text', serif; margin: 3px;
-  border: 1px solid rgba(155,123,46,0.35); cursor: pointer; transition: all 0.2s ease;
-}
-.topic-pill:hover { background: linear-gradient(135deg, var(--gold) 0%, var(--gold-light) 100%); color: var(--parchment-dark) !important; }
 
 .timeline-label {
   font-family: 'Playfair Display', Georgia, serif !important;
@@ -369,6 +393,22 @@ hr {
 }
 [data-testid="stExpander"] > div:last-child { background: transparent !important; padding: 16px 20px !important; }
 
+/* ── Expander header text — gold so it's visible on dark background ── */
+[data-testid="stExpander"] summary p,
+[data-testid="stExpander"] summary span,
+[data-testid="stExpander"] summary div,
+[data-testid="stExpander"] details summary p,
+[data-testid="stExpander"] details summary span {
+  color: #F8E7A1 !important;
+  font-family: 'Playfair Display', Georgia, serif !important;
+  font-size: 0.95rem !important;
+  font-weight: 600 !important;
+}
+[data-testid="stExpander"] summary svg {
+  fill: #c9a84c !important;
+  color: #c9a84c !important;
+}
+
 .doc-card {
   background: rgba(155,123,46,0.07);
   border: 1px solid rgba(155,123,46,0.35);
@@ -379,73 +419,46 @@ hr {
 }
 .doc-card-title {
   font-family: 'Playfair Display', serif;
-  font-size: 0.88rem;
-  font-weight: 700;
+  font-size: 0.88rem; font-weight: 700;
   color: var(--ink-dark) !important;
-  text-transform: uppercase;
-  letter-spacing: 0.8px;
-  margin-bottom: 8px;
-  padding-bottom: 5px;
+  text-transform: uppercase; letter-spacing: 0.8px;
+  margin-bottom: 8px; padding-bottom: 5px;
   border-bottom: 1px solid rgba(155,123,46,0.25);
 }
 .doc-card-text {
   font-family: 'EB Garamond', 'Crimson Text', Georgia, serif;
-  font-size: 1rem;
-  color: var(--ink-mid) !important;
-  font-style: italic;
-  line-height: 1.75;
-  white-space: pre-wrap;
+  font-size: 1rem; color: var(--ink-mid) !important;
+  font-style: italic; line-height: 1.75; white-space: pre-wrap;
 }
 
 .memory-card {
   background: linear-gradient(135deg, #fdf6e3 0%, #faf0d0 100%);
   border: 1px solid rgba(155,123,46,0.4);
   border-left: 4px solid var(--gold);
-  border-radius: 10px;
-  padding: 12px 16px;
-  margin-bottom: 10px;
+  border-radius: 10px; padding: 12px 16px; margin-bottom: 10px;
 }
 .memory-card p {
-  color: var(--ink-mid) !important;
-  font-family: 'Crimson Text', Georgia, serif !important;
-  font-size: 1rem !important;
-  margin: 0 !important;
-  line-height: 1.6;
+  color: var(--ink-mid) !important; font-family: 'Crimson Text', Georgia, serif !important;
+  font-size: 1rem !important; margin: 0 !important; line-height: 1.6;
 }
 .memory-card .mem-ts {
-  color: var(--ink-warm) !important;
-  font-size: 0.78rem !important;
-  font-style: italic;
-  margin-top: 4px !important;
+  color: var(--ink-warm) !important; font-size: 0.78rem !important;
+  font-style: italic; margin-top: 4px !important;
 }
 .memory-header {
-  font-family: 'Playfair Display', serif;
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: var(--ink-dark) !important;
-  margin-bottom: 14px;
-  padding-bottom: 8px;
+  font-family: 'Playfair Display', serif; font-size: 1.1rem; font-weight: 700;
+  color: var(--ink-dark) !important; margin-bottom: 14px; padding-bottom: 8px;
   border-bottom: 1px solid rgba(155,123,46,0.3);
 }
 .memory-empty {
-  font-family: 'EB Garamond', serif;
-  font-style: italic;
-  color: var(--ink-warm) !important;
-  font-size: 0.95rem;
-  text-align: center;
-  padding: 20px;
+  font-family: 'EB Garamond', serif; font-style: italic;
+  color: var(--ink-warm) !important; font-size: 0.95rem; text-align: center; padding: 20px;
 }
 .memory-stat {
-  display: inline-block;
-  background: var(--ink-mid);
-  color: var(--gold-shine) !important;
-  padding: 3px 10px;
-  border-radius: 12px;
-  font-size: 0.8rem;
-  font-family: 'Crimson Text', serif;
-  border: 1px solid var(--gold);
-  margin-right: 6px;
-  margin-bottom: 12px;
+  display: inline-block; background: var(--ink-mid); color: var(--gold-shine) !important;
+  padding: 3px 10px; border-radius: 12px; font-size: 0.8rem;
+  font-family: 'Crimson Text', serif; border: 1px solid var(--gold);
+  margin-right: 6px; margin-bottom: 12px;
 }
 
 #MainMenu { visibility: hidden; }
@@ -453,8 +466,7 @@ footer    { visibility: hidden; }
 header    { background: transparent !important; }
 button[data-testid="stBaseButton-header"] { display: none !important; }
 .block-container {
-  padding-top: 1rem !important;
-  max-width: 100% !important;
+  padding-top: 1rem !important; max-width: 100% !important;
   transition: all 0.3s ease-in-out !important;
 }
 section[data-testid="stSidebar"] {
@@ -468,33 +480,34 @@ section[data-testid="stSidebar"] {
   transform: translateX(-10px) !important;
   box-shadow: none !important;
 }
-.main .block-container,
-.block-container {
+.main .block-container, .block-container {
   transition: all 0.45s cubic-bezier(0.4, 0, 0.2, 1) !important;
-  max-width: 100% !important;
-  will-change: padding, margin !important;
+  max-width: 100% !important; will-change: padding, margin !important;
 }
 div[data-testid="collapsedControl"],
 div[data-testid="stSidebarCollapsedControl"] {
   transition: all 0.45s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
-
-
 </style>
 """, unsafe_allow_html=True)
+
 st.markdown(f"<style>{DASHBOARD_CSS}</style>", unsafe_allow_html=True)
 st.markdown(f"<style>{SUMMARY_CSS}</style>", unsafe_allow_html=True)
 
 
-
+# ── Helper functions ──────────────────────────────────────────────────────────
 
 def ask_darwin(question, year):
     retrieved_docs = retrieve(question)
     st.session_state["last_retrieved_docs"] = retrieved_docs
 
-    long_term_memory   = load_long_term_memory()
-    long_term_context  = format_memory_for_prompt(long_term_memory)
-    system_prompt      = get_persona_prompt(long_term_context, retrieved_docs, year=year)
+    long_term_memory  = load_long_term_memory()
+    long_term_context = format_memory_for_prompt(long_term_memory)
+    system_prompt = get_persona_prompt(
+    long_term_context, retrieved_docs,
+    year=year,
+    letter_mode=st.session_state.get("letter_mode", False)
+)
 
     prompt   = f"{system_prompt}\n\nUser Question:\n{question}"
     response = model.generate_content(prompt, stream=True)
@@ -505,75 +518,23 @@ def ask_darwin(question, year):
             yield text
 
 
-def render_memory_dashboard():
-    memory = load_long_term_memory()
-    facts  = memory.get("facts", [])
-    sessions = memory.get("session_count", 0)
-
-    st.markdown(
-        f'<div class="memory-header">🧠 Long-Term Memory Dashboard</div>',
-        unsafe_allow_html=True,
-    )
-    st.markdown(
-        f'<span class="memory-stat">📅 Sessions: {sessions}</span>'
-        f'<span class="memory-stat">💡 Facts stored: {len(facts)}</span>',
-        unsafe_allow_html=True,
-    )
-
-    if not facts:
-        st.markdown(
-            '<div class="memory-empty">No memories recorded yet. '
-            'Have a conversation and Darwin will remember details about you.</div>',
-            unsafe_allow_html=True,
-        )
-        return
-
-    for i, fact in enumerate(reversed(facts), 1):
-        if isinstance(fact, dict):
-            text = fact.get("fact", str(fact))
-            ts   = fact.get("timestamp", "")
-            ts_display = f'<div class="mem-ts">Recorded: {ts[:16].replace("T", " ") if ts else "—"}</div>'
-        else:
-            text       = str(fact)
-            ts_display = ""
-
-        st.markdown(
-            f'<div class="memory-card">'
-            f'<p>#{i} — {text}</p>'
-            f'{ts_display}'
-            f'</div>',
-            unsafe_allow_html=True,
-        )
-
-    col_a, col_b = st.columns(2)
-    with col_a:
-        if st.button("🔄 Refresh Memory", use_container_width=True, key="mem_refresh"):
-            st.rerun()
-    with col_b:
-        if st.button("🗑️ Clear All Memory", use_container_width=True, key="mem_clear"):
-            save_long_term_memory({"facts": [], "session_count": sessions})
-            st.success("Memory cleared.")
-            st.rerun()
-
-
 def render_retrieved_docs():
-    docs = st.session_state.get("last_retrieved_docs", [])
+    docs  = st.session_state.get("last_retrieved_docs", [])
     label = f"📜 Retrieved Source Passages ({len(docs)} found)"
 
     with st.expander(label, expanded=False):
         if not docs:
             st.markdown(
-                '<p style="color:var(--ink-warm);font-style:italic;font-family:\'Crimson Text\',serif;">'
+                '<p style="color:var(--ink-warm);font-style:italic;'
+                'font-family:\'Crimson Text\',serif;">'
                 'No passages retrieved yet — send a message to Darwin first.</p>',
                 unsafe_allow_html=True,
             )
             return
-
         for i, doc in enumerate(docs, 1):
             preview = doc.strip()
             if len(preview) > 600:
                 preview = preview[:600] + "…"
-
             st.markdown(
                 f'<div class="doc-card">'
                 f'<div class="doc-card-title">Passage {i}</div>'
@@ -582,6 +543,8 @@ def render_retrieved_docs():
                 unsafe_allow_html=True,
             )
 
+
+# ── Session state init ────────────────────────────────────────────────────────
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
@@ -592,6 +555,9 @@ if "show_memory" not in st.session_state:
 if "last_retrieved_docs" not in st.session_state:
     st.session_state.last_retrieved_docs = []
 
+if "pill_prompt" not in st.session_state:
+    st.session_state.pill_prompt = None
+
 if "session_count_incremented" not in st.session_state:
     mem = load_long_term_memory()
     mem["session_count"] = mem.get("session_count", 0) + 1
@@ -601,6 +567,8 @@ if "session_count_incremented" not in st.session_state:
 if "selected_year" not in st.session_state:
     st.session_state.selected_year = 1870
 
+
+# ── SIDEBAR ───────────────────────────────────────────────────────────────────
 
 with st.sidebar:
 
@@ -622,13 +590,14 @@ with st.sidebar:
 
     st.markdown("---")
 
-    st.markdown('<p class="timeline-label">🕰️ Travel in Time</p>', unsafe_allow_html=True)
+    # ── Timeline slider ───────────────────────────────────────────────────────
+    st.markdown('<p class="timeline-label"> Travel in Time</p>', unsafe_allow_html=True)
     st.markdown('<p style="font-family:Crimson Text,serif;font-size:0.85rem;color:#5c4a2a;margin-top:-6px;">Speak to Darwin at any point in his life</p>', unsafe_allow_html=True)
 
     year = st.slider(
         label="Year:",
         min_value=1831, max_value=1882, value=st.session_state.selected_year, step=1,
-        help="Move to change what Darwin knows. 1831 = young naturalist on the Beagle. 1859 = just published Origin. 1882 = elder statesman.",
+        help="1831 = young naturalist on the Beagle. 1859 = just published Origin. 1882 = elder statesman.",
     )
     st.session_state.selected_year = year
 
@@ -663,55 +632,77 @@ with st.sidebar:
 
     st.markdown("---")
 
+    # ── Try asking — clickable pill buttons ───────────────────────────────────
     st.markdown('<p style="font-family:Playfair Display,serif;font-size:0.9rem;font-weight:600;color:#3d2b1f;">Try asking:</p>', unsafe_allow_html=True)
 
     if year <= 1836:
-        suggestions = ["What did you see in the Galápagos?", "Describe the coral reefs you've observed.", "What is it like aboard HMS Beagle?"]
+        suggestions = [
+            "What did you see in the Galápagos?",
+            "Describe the coral reefs you've observed.",
+            "What is it like aboard HMS Beagle?",
+        ]
     elif year <= 1858:
-        suggestions = ["What theory are you working on?", "Tell me about your pigeon experiments.", "What do you think of Malthus's ideas?"]
+        suggestions = [
+            "What theory are you working on?",
+            "Tell me about your pigeon experiments.",
+            "What do you think of Malthus's ideas?",
+        ]
     elif year <= 1860:
-        suggestions = ["How are people reacting to your book?", "Explain natural selection.", "Do humans share ancestry with apes?"]
+        suggestions = [
+            "How are people reacting to your book?",
+            "Explain natural selection.",
+            "Do humans share ancestry with apes?",
+        ]
     else:
-        suggestions = ["What are you researching now?", "Tell me about earthworms.", "How do you feel about your legacy?"]
+        suggestions = [
+            "What are you researching now?",
+            "Tell me about earthworms.",
+            "How do you feel about your legacy?",
+        ]
 
     for s in suggestions:
-        st.markdown(f'<span class="topic-pill">{s}</span>', unsafe_allow_html=True)
+        if st.button(s, key=f"pill_{s}", use_container_width=True):
+            st.session_state.pill_prompt = s
+            st.rerun()
 
     st.markdown("---")
 
     col1, col2 = st.columns(2)
     with col1:
-        if st.button("Clear Chat", use_container_width=True):
+        if st.button("🗑 Clear Chat", use_container_width=True, key="clear_chat"):
             st.session_state.messages = []
+            st.session_state.last_retrieved_docs = []
             st.rerun()
     with col2:
-        msg_count = len(st.session_state.get("messages", []))
-        st.metric("Messages", msg_count)
- 
+        st.metric("Messages", len(st.session_state.messages))
+
     st.markdown("---")
 
-    st.markdown('<p class="timeline-label"> Memory</p>', unsafe_allow_html=True)
+    # ── Memory toggle — ONLY in sidebar, no duplicate in main area ───────────
+    st.markdown('<p class="timeline-label"> Memory & Summaries</p>', unsafe_allow_html=True)
     st.markdown('<p style="font-family:Crimson Text,serif;font-size:0.82rem;color:#5c4a2a;margin-top:-4px;">What Darwin remembers about you</p>', unsafe_allow_html=True)
 
-    if st.button(
-        " View Memory Dashboard" if not st.session_state.show_memory else "✖ Hide Memory Dashboard",
-        use_container_width=True,
-        key="toggle_memory",
-    ):
+    mem_btn_label = "✖ Hide Dashboard" if st.session_state.show_memory else " View Memory Dashboard"
+    if st.button(mem_btn_label, use_container_width=True, key="toggle_memory"):
         st.session_state.show_memory = not st.session_state.show_memory
         st.rerun()
 
+letter_mode = st.toggle("✉️ Letter Mode", key="letter_mode", value=False)
+st.session_state["letter_mode"] = letter_mode
+# ── MAIN AREA ─────────────────────────────────────────────────────────────────
 
 current_year = st.session_state.selected_year
 
 st.markdown(f"""
 <div class="darwin-header">
   <h1 style="color:#F8E7A1 !important;font-size:2.8rem !important;font-weight:800 !important;
-             font-family:'Playfair Display',serif !important;margin-bottom:10px !important;">
+             font-family:'Playfair Display',serif !important;margin-bottom:10px !important;
+             text-shadow: 0 2px 8px rgba(0,0,0,0.5);">
     The Darwin Archive
   </h1>
-  <p style="color:#F4D77A !important;font-size:1.1rem !important;margin-top:0;font-style:italic;">
-    An AI persona grounded in Charles Darwin's own writings .   Speaking to you from the 1800s
+  <p style="color:#F4D77A !important;font-size:1.1rem !important;margin-top:0 !important;
+            font-style:italic;opacity:1 !important;">
+    An AI persona grounded in Charles Darwin's own writings · Speaking to you from the 1800s
   </p>
   <div style="margin-top:12px;">
     <span class="badge">Aboard the Beagle</span>
@@ -722,10 +713,13 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
+# ── Conversation summaries (always visible when they exist) ───────────────────
+render_summary_sidebar()
+
+# ── Memory dashboard (toggled via sidebar button) ─────────────────────────────
 if st.session_state.show_memory:
     with st.container():
-        render_memory_dashboard()
-        render_summary_sidebar()
+        _render_mem_dash()
     st.markdown("---")
 
 # ── Scene intro ───────────────────────────────────────────────────────────────
@@ -742,7 +736,7 @@ else:
 
 st.markdown(f'<div class="darwin-scene">{scene_text}</div>', unsafe_allow_html=True)
 
-# ── Welcome message (first load) ──────────────────────────────────────────────
+# ── Welcome message (first load only) ────────────────────────────────────────
 if len(st.session_state.messages) == 0:
     if current_year <= 1836:
         welcome = ("Good day! I am Charles Darwin, naturalist on this extraordinary voyage. "
@@ -773,12 +767,19 @@ for message in st.session_state.messages:
     with st.chat_message(message["role"], avatar=avatar):
         st.markdown(message["content"])
 
-    # Show retrieved docs after every Darwin response
-    if message["role"] == "assistant" and message == st.session_state.messages[-1]:
-        render_retrieved_docs()
+# Show retrieved docs below the last Darwin message
+if st.session_state.messages and st.session_state.messages[-1]["role"] == "assistant":
+    render_retrieved_docs()
 
-# ── Chat input ────────────────────────────────────────────────────────────────
-prompt = st.chat_input(f"Ask Darwin something (speaking to him in {current_year})...")
+# ── Chat input — handles both pill clicks and manual typing ───────────────────
+typed_prompt = st.chat_input(f"Ask Darwin something (speaking to him in {current_year})...")
+
+# Pill click takes priority; fall back to typed input
+prompt = st.session_state.pill_prompt or typed_prompt
+
+# Clear pill prompt immediately so it doesn't fire twice
+if st.session_state.pill_prompt:
+    st.session_state.pill_prompt = None
 
 if prompt:
     # Show user message
@@ -791,17 +792,15 @@ if prompt:
         response_text = st.write_stream(ask_darwin(prompt, current_year))
 
     st.session_state.messages.append({"role": "assistant", "content": response_text})
+
+    # Summarise every 6 messages
     maybe_summarise(st.session_state.messages, year=st.session_state.selected_year)
-    st.rerun()
 
-    # Show retrieved docs immediately after the response
-    render_retrieved_docs()
-
-    # Update long-term memory every 3 user messages (before rerun so it completes)
+    # Update long-term memory every 3 user messages
     user_msgs = [m for m in st.session_state.messages if m["role"] == "user"]
     if len(user_msgs) % 3 == 0:
         with st.spinner("Darwin is filing away memories..."):
             update_long_term_memory(st.session_state.messages)
 
+    # Single rerun at the very end
     st.rerun()
-    

@@ -276,13 +276,13 @@ def render_summary_sidebar() -> None:
         count = _load_summary().get("message_count", 0)
 
     st.markdown(
-        '<div class="sum-header">📖 Story So Far</div>',
+        '<div class="sum-header">Story So Far</div>',
         unsafe_allow_html=True
     )
 
     if not summary_text:
         st.markdown(
-            '<div class="sum-empty">No summary yet — keep conversing<br>with Darwin to build one.</div>',
+            '<div class="sum-empty">No summary yet. Keep conversing<br>with Darwin to build one.</div>',
             unsafe_allow_html=True
         )
         return
