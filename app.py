@@ -10,6 +10,10 @@ from memory import (
     update_long_term_memory,
     save_long_term_memory,
 )
+from conversation_summary import (
+            maybe_summarise, get_prompt_context,
+            render_summary_sidebar, SUMMARY_CSS
+        )
 from memory_dashboard import render_memory_dashboard, DASHBOARD_CSS, clear_memory
 from persona import get_persona_prompt
 
@@ -337,7 +341,7 @@ hr {
 ::-webkit-scrollbar-thumb:hover { background: var(--gold-light); }
 
 [data-testid="stCaptionContainer"] {
-  color: var(--ink-warm) !important; font-family: 'Crimson Text', serif !important;
+  color: var(--gold-shine) !important; font-family: 'Crimson Text', serif !important;
   font-style: italic; font-size: 0.92rem !important;
 }
 
@@ -479,6 +483,9 @@ div[data-testid="stSidebarCollapsedControl"] {
 </style>
 """, unsafe_allow_html=True)
 st.markdown(f"<style>{DASHBOARD_CSS}</style>", unsafe_allow_html=True)
+st.markdown(f"<style>{SUMMARY_CSS}</style>", unsafe_allow_html=True)
+
+
 
 
 def ask_darwin(question, year):
@@ -718,6 +725,7 @@ st.markdown(f"""
 if st.session_state.show_memory:
     with st.container():
         render_memory_dashboard()
+        render_summary_sidebar()
     st.markdown("---")
 
 # ── Scene intro ───────────────────────────────────────────────────────────────
@@ -783,10 +791,7 @@ if prompt:
         response_text = st.write_stream(ask_darwin(prompt, current_year))
 
     st.session_state.messages.append({"role": "assistant", "content": response_text})
-    update_long_term_memory(
-    messages=st.session_state.messages,
-    session_count=st.session_state.get("session_count", 0),
-)
+    maybe_summarise(st.session_state.messages, year=st.session_state.selected_year)
     st.rerun()
 
     # Show retrieved docs immediately after the response
