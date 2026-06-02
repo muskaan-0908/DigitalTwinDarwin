@@ -117,15 +117,17 @@ Displayed to User
 ---
 
 # Tech Stack
-Python
-Streamlit + CSS
-Google Gemini API
-Generative AI Model (Gemini 2.5 Flash)
-ChromaDB
-Retrieval-Augmented Generation (RAG)
-Sentence Transformers (all-MiniLM-L6-v2) and Cross-Encoder (ms-marco-MiniLM-L-6-v2)
-Vector Embeddings
-Persistent Memory System
+
+- Python
+- Streamlit + Custom CSS
+- Google Gemini API
+- Gemini 2.5 Flash
+- ChromaDB
+- Retrieval-Augmented Generation (RAG)
+- Sentence Transformers (`all-MiniLM-L6-v2`)
+- Cross-Encoder (`ms-marco-MiniLM-L-6-v2`)
+- Vector Embeddings
+- Persistent Memory System
 
 # Project Structure
 
