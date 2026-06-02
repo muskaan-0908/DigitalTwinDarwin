@@ -19,12 +19,13 @@ from persona import get_persona_prompt
 
 st.set_page_config(
     page_title="Charles Darwin — Digital Twin",
-    page_icon="🧬",
+    page_icon="DigitalTwin",
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
 load_dotenv()
+print("KEY =", os.getenv("GEMINI_API_KEY"))
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 model = genai.GenerativeModel("gemini-2.5-flash")
 
@@ -206,36 +207,38 @@ h2, h3 { font-family: 'Playfair Display', Georgia, serif !important; color: var(
 [data-testid="stChatMessage"] {
   border-radius: 18px !important; padding: 18px 22px !important;
   margin-bottom: 16px !important; box-shadow: 0 4px 16px rgba(0,0,0,0.08) !important;
+  background: linear-gradient(135deg, #fefcf9 0%, #f5eedc 100%) !important;
+  border: 1px solid #e5dac4 !important;
+  border-left: 5px solid var(--ink-warm) !important;
 }
-
-[data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-user"]) {
-  background: linear-gradient(135deg, #e8f4e8 0%, #d8ecd8 100%) !important;
-  border: 1px solid #b8d4b8 !important;
-  border-left: 5px solid #2d5a30 !important;
-}
-[data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-user"]) p,
-[data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-user"]) span,
-[data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-user"]) div,
-[data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-user"]) * {
-  color: var(--green-dark) !important;
+[data-testid="stChatMessage"] p,
+[data-testid="stChatMessage"] span,
+[data-testid="stChatMessage"] div,
+[data-testid="stChatMessage"] * {
+  color: var(--ink-mid) !important;
   font-family: 'Crimson Text', Georgia, serif !important;
   font-size: 1.08rem !important;
   background: transparent !important;
 }
 
-[data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-assistant"]) {
-  background: linear-gradient(135deg, #fdf6e3 0%, #faf0d0 100%) !important;
+[data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-assistant"]),
+[data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarAssistant"]) {
+  background: linear-gradient(135deg, #fdf8eb 0%, #faf0d0 100%) !important;
   border: 1px solid #dfc98a !important; border-left: 5px solid var(--gold) !important;
   box-shadow: 0 2px 12px var(--shadow-gold) !important;
 }
 [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-assistant"]) p,
-[data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-assistant"]) span:not([data-testid]) {
+[data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-assistant"]) span:not([data-testid]),
+[data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-assistant"]) *,
+[data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarAssistant"]) p,
+[data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarAssistant"]) span:not([data-testid]),
+[data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarAssistant"]) * {
   color: var(--ink-mid) !important; font-family: 'EB Garamond', 'Crimson Text', Georgia, serif !important;
   font-size: 1.1rem !important; line-height: 1.75 !important;
 }
 
 [data-testid="chatAvatarIcon-user"] {
-  background-color: var(--green-mid) !important; border: 2px solid var(--green-dark) !important; border-radius: 50% !important;
+  background-color: var(--ink-warm) !important; border: 2px solid var(--ink-dark) !important; border-radius: 50% !important;
 }
 [data-testid="chatAvatarIcon-user"] svg { fill: #ffffff !important; }
 [data-testid="chatAvatarIcon-user"] p  { color: #ffffff !important; }
@@ -260,6 +263,23 @@ h2, h3 { font-family: 'Playfair Display', Georgia, serif !important; color: var(
 }
 [data-testid="stChatInput"] textarea::placeholder { color: var(--ink-warm) !important; font-style: italic !important; opacity: 0.7; }
 
+/* ── Custom toggle button styling (Letter Mode) ── */
+.st-key-letter_mode [data-baseweb="checkbox"]:has(input:checked) > div,
+.st-key-letter_mode [data-testid="stCheckbox"]:has(input:checked) > div {
+  background-color: var(--gold) !important;
+}
+.st-key-letter_mode [data-baseweb="checkbox"]:not(:has(input:checked)) > div,
+.st-key-letter_mode [data-testid="stCheckbox"]:not(:has(input:checked)) > div {
+  background-color: var(--parchment-dark) !important;
+}
+.st-key-letter_mode [data-baseweb="checkbox"] div div,
+.st-key-letter_mode [data-testid="stCheckbox"] div div {
+  background-color: var(--parchment-light) !important;
+}
+/* Remove background next to toggle label */
+.st-key-letter_mode div {
+    background-color: transparent !important;
+}
 /* ── Default buttons (main area) ── */
 .stButton > button {
   font-family: 'Crimson Text', Georgia, serif !important; font-size: 0.95rem !important;
@@ -395,10 +415,7 @@ hr {
 
 /* ── Expander header text — gold so it's visible on dark background ── */
 [data-testid="stExpander"] summary p,
-[data-testid="stExpander"] summary span,
-[data-testid="stExpander"] summary div,
-[data-testid="stExpander"] details summary p,
-[data-testid="stExpander"] details summary span {
+[data-testid="stExpander"] details summary p {
   color: #F8E7A1 !important;
   font-family: 'Playfair Display', Georgia, serif !important;
   font-size: 0.95rem !important;
@@ -520,7 +537,7 @@ def ask_darwin(question, year):
 
 def render_retrieved_docs():
     docs  = st.session_state.get("last_retrieved_docs", [])
-    label = f"📜 Retrieved Source Passages ({len(docs)} found)"
+    label = f" Retrieved Source Passages ({len(docs)} found)"
 
     with st.expander(label, expanded=False):
         if not docs:
@@ -687,8 +704,11 @@ with st.sidebar:
         st.session_state.show_memory = not st.session_state.show_memory
         st.rerun()
 
-letter_mode = st.toggle("✉️ Letter Mode", key="letter_mode", value=False)
-st.session_state["letter_mode"] = letter_mode
+letter_mode = st.toggle(
+    " Letter Mode",
+    key="letter_mode",
+    value=True
+)
 # ── MAIN AREA ─────────────────────────────────────────────────────────────────
 
 current_year = st.session_state.selected_year
@@ -719,7 +739,7 @@ render_summary_sidebar()
 # ── Memory dashboard (toggled via sidebar button) ─────────────────────────────
 if st.session_state.show_memory:
     with st.container():
-        _render_mem_dash()
+        _render_mem_dash(load_long_term_memory())
     st.markdown("---")
 
 # ── Scene intro ───────────────────────────────────────────────────────────────
@@ -800,7 +820,10 @@ if prompt:
     user_msgs = [m for m in st.session_state.messages if m["role"] == "user"]
     if len(user_msgs) % 3 == 0:
         with st.spinner("Darwin is filing away memories..."):
-            update_long_term_memory(st.session_state.messages)
+            update_long_term_memory(
+                st.session_state.messages,
+                session_count=load_long_term_memory().get("session_count", 0)
+            )
 
     # Single rerun at the very end
     st.rerun()

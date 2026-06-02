@@ -336,11 +336,15 @@ def retrieve(query: str, n_results: int = 5) -> list:
 
     for q in all_q:
         try:
-            res = collection.query(query_texts=[q], n_results=fetch_n)
+            res = collection.query(
+                query_texts=[q],
+                n_results=fetch_n,
+                where={"chunk_type": "large"}
+            )
             for doc, meta, doc_id in zip(
                 res["documents"][0], res["metadatas"][0], res["ids"][0]
             ):
-                if doc_id not in seen_ids:
+                if len(doc.strip()) >= 250 and doc_id not in seen_ids:
                     seen_ids.add(doc_id)
                     all_docs.append(doc)
                     all_metas.append(meta)
@@ -353,10 +357,15 @@ def retrieve(query: str, n_results: int = 5) -> list:
         for idx, _score in bm25.search(query, n=fetch_n):
             try:
                 doc_id = bm25.ids[idx]
+                meta = bm25.metas[idx]
+                if meta.get("chunk_type") != "large":
+                    continue
                 if doc_id not in seen_ids:
-                    seen_ids.add(doc_id)
-                    all_docs.append(_bm25_doc_store[idx])
-                    all_metas.append(bm25.metas[idx])
+                    doc = _bm25_doc_store[idx]
+                    if len(doc.strip()) >= 250:
+                        seen_ids.add(doc_id)
+                        all_docs.append(doc)
+                        all_metas.append(meta)
             except IndexError:
                 continue
 
