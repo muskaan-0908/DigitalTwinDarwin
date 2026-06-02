@@ -34,10 +34,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-embeddings = model.encode(all_documents)
-np.save("embeddings_cache.npy", embeddings)
-
-
-embeddings = np.load("embeddings_cache.npy")
+

@@ -733,10 +733,12 @@ with st.sidebar:
         st.session_state.show_memory = not st.session_state.show_memory
         st.rerun()
 
+if "letter_mode" not in st.session_state:
+    st.session_state.letter_mode = True
+
 letter_mode = st.toggle(
     " Letter Mode",
-    key="letter_mode",
-    value=True
+    key="letter_mode"
 )
 
 
