@@ -43,6 +43,7 @@ Instead of relying solely on the language model:
 1. Relevant passages are retrieved from Darwin-related documents.
 2. These passages are supplied to the model as context.
 3. The final response is generated using both the retrieved sources and the user's question.
+4. Also provides retreived and relevant documents at the end of each response to ground it.
 
 This reduces hallucinations and keeps responses historically grounded.
 
