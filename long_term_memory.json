@@ -1,6 +1,6 @@
 {
   "facts": [],
-  "session_count": 153,
+  "session_count": 154,
   "conversation_log": [],
   "topic_counts": {},
   "session_activity": [
@@ -58,5 +58,6 @@
       "darwin_turns": 0,
       "year": 1870
     }
-  ]
+  ],
+  "total_turns": 0
 }

@@ -10,6 +10,7 @@ from memory import (
     update_long_term_memory,
     save_long_term_memory,
 )
+from memory_dashboard import render_memory_dashboard, DASHBOARD_CSS, clear_memory
 from persona import get_persona_prompt
 
 st.set_page_config(
@@ -473,8 +474,11 @@ div[data-testid="collapsedControl"],
 div[data-testid="stSidebarCollapsedControl"] {
   transition: all 0.45s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
+
+
 </style>
 """, unsafe_allow_html=True)
+st.markdown(f"<style>{DASHBOARD_CSS}</style>", unsafe_allow_html=True)
 
 
 def ask_darwin(question, year):
@@ -672,12 +676,11 @@ with st.sidebar:
     with col1:
         if st.button("Clear Chat", use_container_width=True):
             st.session_state.messages = []
-            st.session_state.last_retrieved_docs = []
             st.rerun()
     with col2:
         msg_count = len(st.session_state.get("messages", []))
         st.metric("Messages", msg_count)
-
+ 
     st.markdown("---")
 
     st.markdown('<p class="timeline-label"> Memory</p>', unsafe_allow_html=True)
@@ -780,6 +783,11 @@ if prompt:
         response_text = st.write_stream(ask_darwin(prompt, current_year))
 
     st.session_state.messages.append({"role": "assistant", "content": response_text})
+    update_long_term_memory(
+    messages=st.session_state.messages,
+    session_count=st.session_state.get("session_count", 0),
+)
+    st.rerun()
 
     # Show retrieved docs immediately after the response
     render_retrieved_docs()
@@ -791,3 +799,4 @@ if prompt:
             update_long_term_memory(st.session_state.messages)
 
     st.rerun()
+    
