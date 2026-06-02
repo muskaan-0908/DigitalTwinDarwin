@@ -29,7 +29,7 @@ print("KEY =", os.getenv("GEMINI_API_KEY"))
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 model = genai.GenerativeModel("gemini-2.5-flash")
 
-# ── Sidebar collapse button styling ──────────────────────────────────────────
+
 st.markdown("""
 <style>
 [data-testid="stSidebar"] button[data-testid="stBaseButton-header"],
@@ -72,7 +72,8 @@ div[data-testid="collapsedControl"] button svg {
 </style>
 """, unsafe_allow_html=True)
 
-# ── Main CSS ──────────────────────────────────────────────────────────────────
+
+
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap');
@@ -263,24 +264,16 @@ h2, h3 { font-family: 'Playfair Display', Georgia, serif !important; color: var(
 }
 [data-testid="stChatInput"] textarea::placeholder { color: var(--ink-warm) !important; font-style: italic !important; opacity: 0.7; }
 
-/* ── Custom toggle button styling (Letter Mode) ── */
-.st-key-letter_mode [data-baseweb="checkbox"]:has(input:checked) > div,
-.st-key-letter_mode [data-testid="stCheckbox"]:has(input:checked) > div {
+.st-key-letter_mode [data-baseweb="checkbox"]:has(input:checked) > div:first-of-type {
   background-color: var(--gold) !important;
 }
-.st-key-letter_mode [data-baseweb="checkbox"]:not(:has(input:checked)) > div,
-.st-key-letter_mode [data-testid="stCheckbox"]:not(:has(input:checked)) > div {
+.st-key-letter_mode [data-baseweb="checkbox"]:not(:has(input:checked)) > div:first-of-type {
   background-color: var(--parchment-dark) !important;
 }
-.st-key-letter_mode [data-baseweb="checkbox"] div div,
-.st-key-letter_mode [data-testid="stCheckbox"] div div {
+.st-key-letter_mode [data-baseweb="checkbox"] > div:first-of-type > div {
   background-color: var(--parchment-light) !important;
 }
-/* Remove background next to toggle label */
-.st-key-letter_mode div {
-    background-color: transparent !important;
-}
-/* ── Default buttons (main area) ── */
+
 .stButton > button {
   font-family: 'Crimson Text', Georgia, serif !important; font-size: 0.95rem !important;
   color: var(--ink-mid) !important;
@@ -295,7 +288,7 @@ h2, h3 { font-family: 'Playfair Display', Georgia, serif !important; color: var(
   box-shadow: 0 4px 16px var(--shadow-gold) !important; transform: translateY(-1px) !important;
 }
 
-/* ── Sidebar pill buttons (override to look like pills) ── */
+
 [data-testid="stSidebar"] .stButton > button {
   background: linear-gradient(135deg, var(--parchment-dark) 0%, var(--parchment-mid) 100%) !important;
   color: var(--ink-mid) !important;
@@ -315,7 +308,7 @@ h2, h3 { font-family: 'Playfair Display', Georgia, serif !important; color: var(
   transform: translateX(3px) !important;
   box-shadow: 2px 2px 8px var(--shadow-gold) !important;
 }
-/* ── DARWIN HEADER FONT COLOUR FIXES ─────────────────────── */
+
 .darwin-header h1,
 .darwin-header h1 a,
 .darwin-header [data-testid="stHeadingWithActionElements"],
@@ -413,7 +406,7 @@ hr {
 }
 [data-testid="stExpander"] > div:last-child { background: transparent !important; padding: 16px 20px !important; }
 
-/* ── Expander header text — gold so it's visible on dark background ── */
+
 [data-testid="stExpander"] summary p,
 [data-testid="stExpander"] details summary p {
   color: #F8E7A1 !important;
@@ -512,22 +505,60 @@ st.markdown(f"<style>{DASHBOARD_CSS}</style>", unsafe_allow_html=True)
 st.markdown(f"<style>{SUMMARY_CSS}</style>", unsafe_allow_html=True)
 
 
-# ── Helper functions ──────────────────────────────────────────────────────────
+
+import random
+
+def get_thinking_phrase(query):
+    q = query.lower().strip()
+    
+    if q in ["hi", "hii", "hello", "hey", "greetings"] or len(q.split()) <= 2 and any(word in q for word in ["hi", "hello", "hey", "good morning", "good day"]):
+        return random.choice([
+            "Adjusting my spectacles...",
+            "Preparing to converse...",
+            "Taking a seat in the study..."
+        ])
+        
+    if any(word in q for word in ["evolution", "natural selection", "adaptation", "species", "organism"]):
+        return random.choice([
+            "Examining nature's clues...",
+            "Tracing patterns in the evidence...",
+            "Considering the workings of nature..."
+        ])
+    elif any(word in q for word in ["voyage", "beagle", "journey", "travel"]):
+        return random.choice([
+            "Comparing notes from the Beagle...",
+            "Consulting expedition records...",
+            "Reviewing voyage observations..."
+        ])
+    elif any(word in q for word in ["why", "explain", "theory", "hypothesis"]):
+        return random.choice([
+            "Weighing competing explanations...",
+            "Reflecting upon my studies...",
+            "Tracing patterns in the evidence..."
+        ])
+    else:
+        return random.choice([
+            "Leafing through my journals...",
+            "Consulting expedition records...",
+            "Reflecting upon my studies..."
+        ])
 
 def ask_darwin(question, year):
-    retrieved_docs = retrieve(question)
-    st.session_state["last_retrieved_docs"] = retrieved_docs
+    phrase = get_thinking_phrase(question)
+    with st.spinner(phrase):
+        retrieved_docs = retrieve(question)
+        st.session_state["last_retrieved_docs"] = retrieved_docs
 
-    long_term_memory  = load_long_term_memory()
-    long_term_context = format_memory_for_prompt(long_term_memory)
-    system_prompt = get_persona_prompt(
-    long_term_context, retrieved_docs,
-    year=year,
-    letter_mode=st.session_state.get("letter_mode", False)
-)
+        long_term_memory  = load_long_term_memory()
+        long_term_context = format_memory_for_prompt(long_term_memory)
+        system_prompt = get_persona_prompt(
+            long_term_context, retrieved_docs,
+            year=year,
+            letter_mode=st.session_state.get("letter_mode", False)
+        )
 
-    prompt   = f"{system_prompt}\n\nUser Question:\n{question}"
-    response = model.generate_content(prompt, stream=True)
+        prompt   = f"{system_prompt}\n\nUser Question:\n{question}"
+        response = model.generate_content(prompt, stream=True)
 
     for chunk in response:
         text = getattr(chunk, "text", None)
@@ -561,7 +592,6 @@ def render_retrieved_docs():
             )
 
 
-# ── Session state init ────────────────────────────────────────────────────────
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
@@ -585,12 +615,11 @@ if "selected_year" not in st.session_state:
     st.session_state.selected_year = 1870
 
 
-# ── SIDEBAR ───────────────────────────────────────────────────────────────────
 
 with st.sidebar:
 
     try:
-        st.image("assets/charlesdarwin.jpg", use_container_width=True)
+        st.image("image/charlesdarwin.jpg", use_container_width=True)
     except Exception:
         st.markdown("<div style='text-align:center;font-size:4rem;'>🧑🏼‍🔬</div>", unsafe_allow_html=True)
 
@@ -607,7 +636,7 @@ with st.sidebar:
 
     st.markdown("---")
 
-    # ── Timeline slider ───────────────────────────────────────────────────────
+
     st.markdown('<p class="timeline-label"> Travel in Time</p>', unsafe_allow_html=True)
     st.markdown('<p style="font-family:Crimson Text,serif;font-size:0.85rem;color:#5c4a2a;margin-top:-6px;">Speak to Darwin at any point in his life</p>', unsafe_allow_html=True)
 
@@ -649,7 +678,7 @@ with st.sidebar:
 
     st.markdown("---")
 
-    # ── Try asking — clickable pill buttons ───────────────────────────────────
+
     st.markdown('<p style="font-family:Playfair Display,serif;font-size:0.9rem;font-weight:600;color:#3d2b1f;">Try asking:</p>', unsafe_allow_html=True)
 
     if year <= 1836:
@@ -695,7 +724,7 @@ with st.sidebar:
 
     st.markdown("---")
 
-    # ── Memory toggle — ONLY in sidebar, no duplicate in main area ───────────
+
     st.markdown('<p class="timeline-label"> Memory & Summaries</p>', unsafe_allow_html=True)
     st.markdown('<p style="font-family:Crimson Text,serif;font-size:0.82rem;color:#5c4a2a;margin-top:-4px;">What Darwin remembers about you</p>', unsafe_allow_html=True)
 
@@ -709,7 +738,7 @@ letter_mode = st.toggle(
     key="letter_mode",
     value=True
 )
-# ── MAIN AREA ─────────────────────────────────────────────────────────────────
+
 
 current_year = st.session_state.selected_year
 
@@ -733,16 +762,16 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# ── Conversation summaries (always visible when they exist) ───────────────────
+
 render_summary_sidebar()
 
-# ── Memory dashboard (toggled via sidebar button) ─────────────────────────────
+
 if st.session_state.show_memory:
     with st.container():
         _render_mem_dash(load_long_term_memory())
     st.markdown("---")
 
-# ── Scene intro ───────────────────────────────────────────────────────────────
+
 if current_year <= 1836:
     scene_text = f"The year is {current_year}. You find Darwin aboard HMS Beagle, somewhere in the southern seas..."
 elif current_year <= 1841:
@@ -756,7 +785,7 @@ else:
 
 st.markdown(f'<div class="darwin-scene">{scene_text}</div>', unsafe_allow_html=True)
 
-# ── Welcome message (first load only) ────────────────────────────────────────
+
 if len(st.session_state.messages) == 0:
     if current_year <= 1836:
         welcome = ("Good day! I am Charles Darwin, naturalist on this extraordinary voyage. "
@@ -781,42 +810,52 @@ if len(st.session_state.messages) == 0:
     with st.chat_message("assistant", avatar="🧑🏼‍🔬"):
         st.markdown(welcome)
 
-# ── Chat history ──────────────────────────────────────────────────────────────
+
 for message in st.session_state.messages:
     avatar = "🧑🏼‍🔬" if message["role"] == "assistant" else "👤"
     with st.chat_message(message["role"], avatar=avatar):
-        st.markdown(message["content"])
+        st.markdown(message["content"], unsafe_allow_html=True)
 
-# Show retrieved docs below the last Darwin message
+
 if st.session_state.messages and st.session_state.messages[-1]["role"] == "assistant":
     render_retrieved_docs()
 
-# ── Chat input — handles both pill clicks and manual typing ───────────────────
+
 typed_prompt = st.chat_input(f"Ask Darwin something (speaking to him in {current_year})...")
 
-# Pill click takes priority; fall back to typed input
+
 prompt = st.session_state.pill_prompt or typed_prompt
 
-# Clear pill prompt immediately so it doesn't fire twice
+
 if st.session_state.pill_prompt:
     st.session_state.pill_prompt = None
 
 if prompt:
-    # Show user message
+
     with st.chat_message("user", avatar="👤"):
         st.markdown(prompt)
     st.session_state.messages.append({"role": "user", "content": prompt})
 
-    # Stream Darwin's response
+
     with st.chat_message("assistant", avatar="🧑🏼‍🔬"):
         response_text = st.write_stream(ask_darwin(prompt, current_year))
+        
+        from uncertainty import get_uncertainty_score
+        unc = get_uncertainty_score(response_text)
+        unc_html = (
+            f'<div style="margin-top: 10px; padding: 6px 12px; background: rgba(0,0,0,0.03); '
+            f'border-left: 3px solid {unc["colour"]}; border-radius: 4px; '
+            f'font-size: 0.9rem; color: {unc["colour"]}; font-family: \'Crimson Text\', serif;">'
+            f'{unc["icon"]} <strong>Confidence:</strong> {unc["label"]} (Score: {unc["score"]}/100)</div>'
+        )
+        st.markdown(unc_html, unsafe_allow_html=True)
 
-    st.session_state.messages.append({"role": "assistant", "content": response_text})
+    st.session_state.messages.append({"role": "assistant", "content": response_text + "\n\n" + unc_html})
 
-    # Summarise every 6 messages
+
     maybe_summarise(st.session_state.messages, year=st.session_state.selected_year)
 
-    # Update long-term memory every 3 user messages
+
     user_msgs = [m for m in st.session_state.messages if m["role"] == "user"]
     if len(user_msgs) % 3 == 0:
         with st.spinner("Darwin is filing away memories..."):
@@ -825,5 +864,5 @@ if prompt:
                 session_count=load_long_term_memory().get("session_count", 0)
             )
 
-    # Single rerun at the very end
+
     st.rerun()

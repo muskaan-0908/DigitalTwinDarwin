@@ -1,6 +1,5 @@
 import re
 
-# Hedging phrases mapped to uncertainty weight
 HIGH_UNCERTAINTY = [
     "I confess", "I am not certain", "it appears to me",
     "I suspect", "perhaps", "it seems probable", "I venture",
@@ -25,18 +24,17 @@ def get_uncertainty_score(text: str) -> dict:
     med   = sum(1 for p in MEDIUM_UNCERTAINTY if p in text_lower)
     low   = sum(1 for p in LOW_UNCERTAINTY   if p in text_lower)
 
-    # Score 0-100 where 100 = most uncertain
     total = high + med + low
     if total == 0:
-        score = 35  # Darwin is never fully certain by default
+        score = 35  
     else:
         score = min(100, int(((high * 3 + med * 1.5) / (total * 3)) * 100))
 
     if score >= 65:
-        label, colour, icon = "Speculative", "#c0392b", "🌫️"
+        label, colour, icon = "Speculative", "#c0392b"
     elif score >= 35:
-        label, colour, icon = "Tentative",   "#e67e22", "🌤️"
+        label, colour, icon = "Tentative",   "#e67e22"
     else:
-        label, colour, icon = "Confident",   "#2d5a30", "☀️"
+        label, colour, icon = "Confident",   "#2d5a30"
 
-    return {"score": score, "label": label, "colour": colour, "icon": icon}
+    return {"score": score, "label": label, "colour": colour}

@@ -28,9 +28,9 @@ def main():
 
     after = collection.count()
     print(f"\n{'='*50}")
-    print(f"Done! Added {after - before} new chunks.")
+    print(f"Added {after - before} new chunks.")
     print(f"Total chunks in database: {after}")
-    print("You can now run: python agent.py")
+
 
 if __name__ == "__main__":
     main()

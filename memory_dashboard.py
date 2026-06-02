@@ -1,20 +1,6 @@
-"""
-memory_dashboard.py  —  Sidebar memory dashboard for DigitalTwin Darwin
-------------------------------------------------------------------------
-Drop-in module. Call render_memory_dashboard(memory_data) inside
-your `with st.sidebar:` block.
-
-Usage in app.py:
-    from memory_dashboard import render_memory_dashboard, DASHBOARD_CSS
-    # Add DASHBOARD_CSS to your existing st.markdown(...) CSS block (once, at top of app.py)
-    # Then inside `with st.sidebar:`, call:
-    render_memory_dashboard(load_long_term_memory())
-"""
-
 import streamlit as st
 from memory import get_facts_by_category
 
-# ── Category metadata ─────────────────────────────────────────────────────────
 
 CATEGORY_CONFIG = {
     "background":      {"label": "Background",          "icon": "🏛️", "color": "#6b8e6b"},
@@ -24,10 +10,8 @@ CATEGORY_CONFIG = {
     "personal":        {"label": "Personal Details",     "icon": "🪶", "color": "#a86b3a"},
 }
 
-# ── CSS (inject once via st.markdown in app.py) ───────────────────────────────
 
 DASHBOARD_CSS = """
-/* ── MEMORY DASHBOARD ───────────────────────────────────── */
 
 .mem-header {
     font-family: 'Playfair Display', serif;
@@ -193,33 +177,22 @@ DASHBOARD_CSS = """
     text-align: center;
     margin-top: 6px;
 }
-/* ── END MEMORY DASHBOARD ───────────────────────────────── */
 """
 
 
-# ── Main render function ──────────────────────────────────────────────────────
 
 def render_memory_dashboard(memory_data: dict) -> None:
-    """
-    Render the memory dashboard inside the Streamlit sidebar.
-    Call this from within a `with st.sidebar:` block.
-
-    Args:
-        memory_data: dict from load_long_term_memory()
-    """
     facts_by_cat = get_facts_by_category(memory_data)
     total_facts   = sum(len(v) for v in facts_by_cat.values())
     session_count = memory_data.get("session_count", 0)
     total_turns   = memory_data.get("total_turns", 0)
 
-    # ── Section header ────────────────────────────────────────────────────────
     st.markdown("""
     <div class="mem-header">
          Darwin Knows About You
     </div>
     """, unsafe_allow_html=True)
 
-    # ── Stats row ─────────────────────────────────────────────────────────────
     st.markdown(f"""
     <div class="mem-stats-row">
         <div class="mem-stat-box">
@@ -237,7 +210,7 @@ def render_memory_dashboard(memory_data: dict) -> None:
     </div>
     """, unsafe_allow_html=True)
 
-    # ── Memory fill progress bar (max display = 20 facts) ────────────────────
+
     MAX_DISPLAY = 20
     pct = min(total_facts / MAX_DISPLAY * 100, 100)
     st.markdown(f"""
@@ -246,7 +219,7 @@ def render_memory_dashboard(memory_data: dict) -> None:
     </div>
     """, unsafe_allow_html=True)
 
-    # ── Empty state ───────────────────────────────────────────────────────────
+
     if total_facts == 0:
         st.markdown("""
         <div class="mem-empty">
@@ -259,7 +232,7 @@ def render_memory_dashboard(memory_data: dict) -> None:
         )
         return
 
-    # ── Fact cards per category ───────────────────────────────────────────────
+
     for cat_key, cfg in CATEGORY_CONFIG.items():
         facts = facts_by_cat.get(cat_key, [])
         if not facts:
@@ -270,7 +243,7 @@ def render_memory_dashboard(memory_data: dict) -> None:
         label  = cfg["label"]
         count  = len(facts)
 
-        # Build fact items HTML
+
         items_html = ""
         for fact in facts:
             session_tag = fact.get("added_session", 0)
@@ -303,10 +276,9 @@ def render_memory_dashboard(memory_data: dict) -> None:
     )
 
 
-# ── Clear memory helper (wired to the "Clear Chat" button flow) ───────────────
+
 
 def clear_memory(filename: str = "long_term_memory.json") -> None:
-    """Wipe facts but preserve session_count and total_turns."""
     from memory import load_long_term_memory, save_long_term_memory
     data = load_long_term_memory(filename)
     data["facts"] = []

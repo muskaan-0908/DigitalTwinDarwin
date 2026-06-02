@@ -1,4 +1,3 @@
-
 import os
 import re
 import hashlib
@@ -12,7 +11,6 @@ import google.generativeai as genai
 
 load_dotenv()
 
-# ── Optional: CrossEncoder for reranking ─────────────────────────────────────
 try:
     from sentence_transformers import CrossEncoder
     _cross_encoder = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
@@ -22,7 +20,6 @@ except Exception:
     print("[rag] CrossEncoder not available — reranking disabled. "
           "pip install sentence-transformers  to enable it.")
 
-# ── ChromaDB setup ────────────────────────────────────────────────────────────
 
 client = chromadb.PersistentClient(path="./chroma_db")
 
@@ -30,7 +27,6 @@ emb_fn = embedding_functions.SentenceTransformerEmbeddingFunction(
     model_name="all-MiniLM-L6-v2"
 )
 
-# ── Source labels ─────────────────────────────────────────────────────────────
 
 SOURCE_LABELS = {
     "origin_of_species":        "On the Origin of Species (1859)",
@@ -50,7 +46,6 @@ def _source_label(source_name: str) -> str:
     return SOURCE_LABELS.get(source_name, source_name.replace("_", " ").title())
 
 
-# ── Collection ────────────────────────────────────────────────────────────────
 
 def get_or_create_collection(scientist_name: str):
     return client.get_or_create_collection(
@@ -59,20 +54,8 @@ def get_or_create_collection(scientist_name: str):
     )
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# TECHNIQUE 3 — BM25 in-memory index
-# ─────────────────────────────────────────────────────────────────────────────
 
 class BM25Index:
-    """
-    Lightweight Okapi BM25 implementation, no dependencies.
-
-    BM25 score(query q, document d):
-        sum over query terms t of:
-            IDF(t) * tf(t,d)*(k1+1) / (tf(t,d) + k1*(1 - b + b*|d|/avgdl))
-
-    k1=1.5, b=0.75 are standard defaults.
-    """
 
     def __init__(self, docs, ids, metas, k1=1.5, b=0.75):
         self.ids   = ids
@@ -140,12 +123,8 @@ def _get_bm25(collection):
         return None
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# TECHNIQUE 1 — Query Expansion
-# ─────────────────────────────────────────────────────────────────────────────
 
 def _expand_query(query: str) -> list:
-    """Generate 2 alternative search queries via Gemini."""
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
         return [query]
@@ -166,15 +145,8 @@ def _expand_query(query: str) -> list:
         return [query]
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# TECHNIQUE 2 — HyDE (Hypothetical Document Embedding)
-# ─────────────────────────────────────────────────────────────────────────────
 
 def _hyde_query(query: str) -> str:
-    """
-    Generate a short fake Darwin passage that would answer the query.
-    Embedding this passage finds better matches than embedding the question.
-    """
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
         return query
@@ -192,9 +164,6 @@ def _hyde_query(query: str) -> str:
         return query
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# TECHNIQUE 4 — MMR (Maximal Marginal Relevance)
-# ─────────────────────────────────────────────────────────────────────────────
 
 def _cosine(a, b):
     dot    = sum(x * y for x, y in zip(a, b))
@@ -204,12 +173,6 @@ def _cosine(a, b):
 
 
 def _mmr(query_emb, candidate_docs, candidate_metas, doc_embs, n=5, lam=0.6):
-    """
-    Iteratively pick the doc that maximises:
-        lambda * relevance_to_query - (1-lambda) * max_similarity_to_selected
-
-    lam=0.6 gives a good relevance/diversity balance.
-    """
     if not candidate_docs:
         return [], []
 
@@ -238,9 +201,6 @@ def _mmr(query_emb, candidate_docs, candidate_metas, doc_embs, n=5, lam=0.6):
     return selected_docs, selected_meta
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# TECHNIQUE 5 — Cross-encoder reranking
-# ─────────────────────────────────────────────────────────────────────────────
 
 def _rerank(query, docs, metas):
     if not _HAS_CROSS_ENCODER or not docs:
@@ -253,16 +213,9 @@ def _rerank(query, docs, metas):
         return docs, metas
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# TECHNIQUE 6 — Contextual Compression
-# ─────────────────────────────────────────────────────────────────────────────
 
 def _compress(query, doc, max_sentences=4):
-    """
-    Keep only the top-scoring sentences from a chunk.
-    Scoring = keyword overlap between sentence and query.
-    No API call needed — pure Python.
-    """
+
     sentences = re.split(r'(?<=[.!?])\s+', doc.strip())
     if len(sentences) <= max_sentences:
         return doc
@@ -284,7 +237,6 @@ def _compress(query, doc, max_sentences=4):
     return " ".join(sentences[i] for i, _ in top)
 
 
-# ── Retrieval cache ───────────────────────────────────────────────────────────
 
 _retrieval_cache = {}
 _CACHE_MAX       = 100
@@ -296,23 +248,8 @@ def _cache_set(key, value):
     _retrieval_cache[key] = value
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# MAIN retrieve() — full pipeline
-# ─────────────────────────────────────────────────────────────────────────────
 
 def retrieve(query: str, n_results: int = 5) -> list:
-    """
-    Pipeline:
-        query
-          ├─► Query Expansion  (3 variants)
-          ├─► HyDE             (1 hypothetical passage)
-          ├─► Vector Search    (all 4 queries merged, deduped)
-          ├─► BM25 Search      (keyword hits merged in)
-          ├─► MMR              (diversify the candidate pool)
-          ├─► Cross-encoder    (rerank by true relevance)
-          └─► Compression      (trim to relevant sentences)
-                └─► labelled passages ["[Source]\ntext...", ...]
-    """
     cache_key = query.strip().lower()
     if cache_key in _retrieval_cache:
         return _retrieval_cache[cache_key]
@@ -324,12 +261,14 @@ def retrieve(query: str, n_results: int = 5) -> list:
 
     fetch_n = min(n_results * 4, total)
 
-    # Step 1 + 2: build all query variants
-    variants  = _expand_query(query)
-    hyde_q    = _hyde_query(query)
-    all_q     = list(dict.fromkeys(variants + [hyde_q]))  # dedup, keep order
+    import concurrent.futures
+    with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+        f_variants = executor.submit(_expand_query, query)
+        f_hyde = executor.submit(_hyde_query, query)
+        variants = f_variants.result()
+        hyde_q = f_hyde.result()
+    all_q     = list(dict.fromkeys(variants + [hyde_q]))  
 
-    # Step 3: vector search for all variants, merged + deduped
     seen_ids  = set()
     all_docs  = []
     all_metas = []
@@ -351,7 +290,7 @@ def retrieve(query: str, n_results: int = 5) -> list:
         except Exception:
             continue
 
-    # Step 3b: BM25 hybrid
+
     bm25 = _get_bm25(collection)
     if bm25 is not None:
         for idx, _score in bm25.search(query, n=fetch_n):
@@ -372,7 +311,6 @@ def retrieve(query: str, n_results: int = 5) -> list:
     if not all_docs:
         return []
 
-    # Step 4: MMR
     try:
         doc_embs   = emb_fn(all_docs)
         query_emb  = emb_fn([query])[0]
@@ -383,10 +321,8 @@ def retrieve(query: str, n_results: int = 5) -> list:
         mmr_docs  = all_docs[:n_results * 2]
         mmr_metas = all_metas[:n_results * 2]
 
-    # Step 5: cross-encoder reranking
     reranked_docs, reranked_metas = _rerank(query, mmr_docs, mmr_metas)
 
-    # Step 6: compression + source labelling
     labelled = []
     for doc, meta in zip(reranked_docs[:n_results], reranked_metas[:n_results]):
         compressed = _compress(query, doc, max_sentences=4)
@@ -397,7 +333,6 @@ def retrieve(query: str, n_results: int = 5) -> list:
     return labelled
 
 
-# ── Ingest (unchanged API) ────────────────────────────────────────────────────
 
 def _content_id(source_name, chunk_type, text):
     digest = hashlib.md5(text.encode("utf-8")).hexdigest()[:12]

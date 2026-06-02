@@ -1,42 +1,3 @@
-"""
-conversation_summary.py  —  Rolling conversation summariser for DigitalTwin Darwin
------------------------------------------------------------------------------------
-How it works:
-
-ROLLING SUMMARY STRATEGY:
-  • After every SUMMARY_EVERY messages (default: 10), the oldest messages are
-    compressed into a running summary using Gemini.
-  • The summary is stored in st.session_state["conversation_summary"]
-    AND persisted to summary.json so it survives page refreshes.
-  • In app.py, instead of passing all 40+ messages to the LLM, we pass:
-        [rolling_summary_block] + [last KEEP_RECENT messages]
-  • This keeps the prompt lean and avoids context-window bloat.
-
-SIDEBAR PANEL:
-  • render_summary_sidebar() shows a "Story So Far" collapsible panel
-    in the Victorian style, displaying the rolling summary.
-
-USAGE IN app.py:
-  1. Import:
-        from conversation_summary import (
-            maybe_summarise, get_prompt_context,
-            render_summary_sidebar, SUMMARY_CSS
-        )
-
-  2. Inject CSS (once, after your existing CSS block):
-        st.markdown(f"<style>{SUMMARY_CSS}</style>", unsafe_allow_html=True)
-
-  3. After every assistant reply (where you currently call update_long_term_memory):
-        maybe_summarise(st.session_state.messages, year=st.session_state.selected_year)
-
-  4. In ask_darwin(), replace the raw messages history passed to the prompt with:
-        context_messages = get_prompt_context(st.session_state.messages)
-     Then use context_messages for your prompt instead of the full list.
-
-  5. In the sidebar, after render_memory_dashboard():
-        render_summary_sidebar()
-"""
-
 import os
 import json
 import streamlit as st
@@ -46,14 +7,14 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# ── Config ────────────────────────────────────────────────────────────────────
-SUMMARY_EVERY   = 10    # compress after every N messages
-KEEP_RECENT     = 4     # always keep the last N messages verbatim
+
+SUMMARY_EVERY   = 10    
+KEEP_RECENT     = 4     
 SUMMARY_FILE    = "summary.json"
 
-# ── CSS ───────────────────────────────────────────────────────────────────────
+
 SUMMARY_CSS = """
-/* ── CONVERSATION SUMMARY PANEL ─────────────────────────── */
+
 
 .sum-header {
     font-family: 'Playfair Display', serif;
@@ -111,11 +72,10 @@ SUMMARY_CSS = """
     text-align: center;
     padding: 8px;
 }
-/* ── END SUMMARY PANEL ───────────────────────────────────── */
 """
 
 
-# ── Persistence ───────────────────────────────────────────────────────────────
+
 
 def _load_summary() -> dict:
     default = {"text": "", "message_count": 0, "year": 1870}
@@ -137,18 +97,14 @@ def _save_summary(data: dict):
         print(f"[summary] Save failed: {e}")
 
 
-# ── Gemini summariser ─────────────────────────────────────────────────────────
+
 
 def _call_gemini_summary(
     messages_to_compress: list[dict],
     existing_summary: str,
     year: int,
 ) -> str:
-    """
-    Compress messages_to_compress into a new rolling summary,
-    incorporating the existing summary if present.
-    Returns the new summary string, or the old one on failure.
-    """
+
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
         return existing_summary
@@ -157,7 +113,6 @@ def _call_gemini_summary(
         genai.configure(api_key=api_key)
         model = genai.GenerativeModel("gemini-2.5-flash")
 
-        # Format messages
         convo = "\n".join(
             f"{'USER' if m['role'] == 'user' else 'DARWIN'}: {m['content']}"
             for m in messages_to_compress
@@ -188,29 +143,18 @@ Return only the summary text, no preamble."""
         return existing_summary
 
 
-# ── Core: maybe_summarise ─────────────────────────────────────────────────────
 
 def maybe_summarise(messages: list[dict], year: int = 1870) -> bool:
-    """
-    Call after every assistant reply.
-    Compresses old messages into a rolling summary when the total count
-    crosses a SUMMARY_EVERY boundary.
-
-    Returns True if a summary was generated, False otherwise.
-    """
     total = len(messages)
     if total < SUMMARY_EVERY:
         return False
 
-    # Load existing state
     saved = _load_summary()
     last_summarised_at = saved.get("message_count", 0)
 
-    # Only trigger if we've accumulated SUMMARY_EVERY new messages since last run
     if total - last_summarised_at < SUMMARY_EVERY:
         return False
 
-    # Messages to compress = everything except the last KEEP_RECENT
     messages_to_compress = messages[:total - KEEP_RECENT]
     existing_summary     = saved.get("text", "")
 
@@ -226,23 +170,10 @@ def maybe_summarise(messages: list[dict], year: int = 1870) -> bool:
     return True
 
 
-# ── Context builder for prompt ────────────────────────────────────────────────
 
 def get_prompt_context(messages: list[dict]) -> list[dict]:
-    """
-    Returns a lean message list for use in the LLM prompt:
-        [summary_message (if exists)] + [last KEEP_RECENT messages]
-
-    Use this instead of the full messages list when building the Darwin prompt.
-
-    In app.py, inside ask_darwin():
-        from conversation_summary import get_prompt_context
-        context = get_prompt_context(st.session_state.messages)
-        # use `context` to build conversation_history for the prompt
-    """
     summary_text = st.session_state.get("conversation_summary", "")
 
-    # Also try loading from file (survives page refresh)
     if not summary_text:
         saved        = _load_summary()
         summary_text = saved.get("text", "")
@@ -261,13 +192,9 @@ def get_prompt_context(messages: list[dict]) -> list[dict]:
         return recent
 
 
-# ── Sidebar panel ─────────────────────────────────────────────────────────────
 
 def render_summary_sidebar() -> None:
-    """
-    Render the 'Story So Far' panel in the Streamlit sidebar.
-    Call from within `with st.sidebar:`.
-    """
+
     summary_text = st.session_state.get("conversation_summary", "")
     if not summary_text:
         saved        = _load_summary()
@@ -296,7 +223,7 @@ def render_summary_sidebar() -> None:
     </div>
     """, unsafe_allow_html=True)
 
-    # Manual refresh button
+
     if st.button("↺ Refresh Summary", use_container_width=True, key="refresh_summary"):
         messages = st.session_state.get("messages", [])
         if messages:
@@ -314,10 +241,8 @@ def render_summary_sidebar() -> None:
             st.rerun()
 
 
-# ── Clear ─────────────────────────────────────────────────────────────────────
 
 def clear_summary():
-    """Call when the user clicks 'Clear Chat'."""
     _save_summary({"text": "", "message_count": 0, "year": 1870})
     if "conversation_summary" in st.session_state:
         del st.session_state["conversation_summary"]
