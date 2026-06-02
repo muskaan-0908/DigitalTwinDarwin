@@ -291,12 +291,11 @@ These examples demonstrate timeline awareness and historical consistency.
 Potential extensions include:
 
 * Additional historical figures
-* Better citation support
+* Voice interaction
 * Multi-person conversations
 * Online deployment
 * Enhanced memory ranking
-* More historical source material
-
+* More factually grounded 
 ---
 
 
